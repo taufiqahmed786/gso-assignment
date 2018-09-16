@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.todolist.model.Comment;
-import com.todolist.model.Item;
 import com.todolist.repository.CommentRepository;
 
 @Service
@@ -51,7 +50,7 @@ public class CommentServiceImpl implements CommentService {
                     "Cannot create new Comment with supplied comment id.  The commentId attribute must be null to create an entity.");
         }
 
-        Comment savedComment = commentRepository.save(comment);
+        Comment savedComment = commentRepository.saveAndFlush(comment);
 		return savedComment;
 	}
 
@@ -73,15 +72,8 @@ public class CommentServiceImpl implements CommentService {
         commentToUpdate.setComment(comment.getComment());
         commentToUpdate.setCommentDate(comment.getCommentDate());
                 
-        Comment updatedComment = commentRepository.save(commentToUpdate);
+        Comment updatedComment = commentRepository.saveAndFlush(commentToUpdate);
 		return updatedComment;
-	}
-	
-	@Transactional
-	@Override
-	public void add(Item item, Comment comment){
-		
-		Comment savedComment = create(comment);               
 	}
 
 	@Transactional

@@ -9,8 +9,8 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 
 @Entity(name = "Item")
 @Table(name="item")
@@ -41,20 +41,29 @@ public class Item implements Serializable {
     @Column(name="created_on")
     private Date createdOn;
 	
-    @Transient
+    @OneToMany(mappedBy= "todoItem")
     private List<Comment> comments;
     
-	public Item(){comments = new ArrayList<Comment>();} // default constructor
+	public Item(){} // default constructor
 	
 	// perameterized constructor
-	public Item(Integer itemId, String todo, Boolean done, Integer userId, Date createdOn) {
+	public Item(Integer itemId, String todo, Boolean done, Integer userId, Date createdOn,List<Comment> comments) {
 		super();
 		this.itemId = itemId;
 		this.todo = todo;
 		this.done = done;
 		this.userId = userId;
 		this.createdOn = createdOn;
-		this.comments = new ArrayList<Comment>();
+		this.comments = comments;
+	}
+	
+	public Item(String todo, Boolean done, Integer userId, Date createdOn,List<Comment> comments) {
+		super();
+		this.todo = todo;
+		this.done = done;
+		this.userId = userId;
+		this.createdOn = createdOn;
+		this.comments = comments;
 	}
 	
 	public Item(String todo, Boolean done, Integer userId, Date createdOn) {
@@ -108,6 +117,7 @@ public class Item implements Serializable {
 		}
 		this.comments.add(comment);
 	}
+	
 		
 	@Override
 	public String toString() {

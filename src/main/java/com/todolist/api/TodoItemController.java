@@ -1,6 +1,7 @@
 package com.todolist.api;
 
 import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -16,6 +17,8 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.todolist.dto.CommentDto;
+import com.todolist.dto.ItemDto;
 import com.todolist.model.Comment;
 import com.todolist.model.Item;
 import com.todolist.service.CommentService;
@@ -47,13 +50,16 @@ public class TodoItemController extends BaseController {
      * @throws Exception Thrown if a problem occurs completing the request.
      */
     @GetMapping("/todo/items/all")
-    public ResponseEntity<Collection<Item>> getAllItems() {
+    public ResponseEntity<Collection<ItemDto>> getAllItems() {
         logger.info("# getAllItems - start");
         
-        Collection<Item> todoItems = itemService.fetchAllItemsButRecentAndPendingFirst();
+        List<ItemDto> todoItems = new ArrayList<ItemDto>();
+        for(Item item : itemService.fetchAllItemsButRecentAndPendingFirst()){
+        	todoItems.add(ItemDto.create(item));
+        }        
 
         logger.info("# getAllItems - end");
-        return new ResponseEntity<Collection<Item>>(todoItems,HttpStatus.OK);
+        return new ResponseEntity<Collection<ItemDto>>(todoItems,HttpStatus.OK);
     }
     
     /**
@@ -63,13 +69,16 @@ public class TodoItemController extends BaseController {
      * @throws Exception Thrown if a problem occurs completing the request.
      */
     @GetMapping("/todo/items")
-    public ResponseEntity<Collection<Item>> getRecentPendingItems() {
+    public ResponseEntity<Collection<ItemDto>> getRecentPendingItems() {
         logger.info("# getRecentPendingItems - start");
 
-        Collection<Item> recentPendingTodoItems = itemService.fetchMostRecentAndPendingItems();
+        List<ItemDto> recentPendingTodoItems = new ArrayList<ItemDto>();
+        for(Item item : itemService.fetchMostRecentAndPendingItems()){
+        	recentPendingTodoItems.add(ItemDto.create(item));
+        }
 
         logger.info("# getRecentPendingItems - end");
-        return new ResponseEntity<Collection<Item>>(recentPendingTodoItems,HttpStatus.OK);
+        return new ResponseEntity<Collection<ItemDto>>(recentPendingTodoItems,HttpStatus.OK);
     }
     
     /**
@@ -79,17 +88,17 @@ public class TodoItemController extends BaseController {
      * @throws Exception Thrown if a problem occurs completing the request.
      */
     @GetMapping("/todo/items/{itemId}")
-    public ResponseEntity<Item> getTodoItemByItemID(@PathVariable Integer itemId) {
+    public ResponseEntity<ItemDto> getTodoItemByItemID(@PathVariable Integer itemId) {
         logger.info("# getTodoItemByItemID - start");
 
-        Item todoItem = itemService.findOne(itemId);
+        Item todoItem = itemService.findWithComments(itemId);
         if (todoItem == null) {
         	logger.info("# getTodoItemByItemID - not found");
-            return new ResponseEntity<Item>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<ItemDto>(HttpStatus.NOT_FOUND);
         }
 
         logger.info("# getTodoItemByItemID - end");
-        return new ResponseEntity<Item>(todoItem,HttpStatus.OK);
+        return new ResponseEntity<ItemDto>(ItemDto.create(todoItem),HttpStatus.OK);
     }
 
 
@@ -110,11 +119,24 @@ public class TodoItemController extends BaseController {
      * @throws Exception Thrown if a problem occurs completing the request.
      */
     @PostMapping("/todo/items")
-    public ResponseEntity<Item> createTodoItem(@RequestBody Item todoItem) 
+    public ResponseEntity<Item> createTodoItem(@RequestBody ItemDto todoItem) 
     		throws Exception{
     	logger.info("# getTodoItemByItemID - start");
 
-        itemService.create(todoItem);
+    	Item item = new Item();
+    	item.setTodo(todoItem.getTask());
+    	item.setDone(todoItem.COMPLETED.equalsIgnoreCase(todoItem.getStatus()));
+    	item.setCreatedOn(new Date(System.currentTimeMillis()));
+    	item.setUserId(1); // currently user doesn't persist
+    	Item savedItem = itemService.create(item);
+    	
+    	for(CommentDto commentDto : todoItem.getComments()){
+    		Comment comment = new Comment();
+    		comment.setComment(commentDto.getComment());
+    		comment.setCommentDate(new Date(System.currentTimeMillis()));
+    		comment.setTodoItem(savedItem);
+    		commentService.create(comment);
+    	}        
 
         logger.info("# getTodoItemByItemID - end");
         return new ResponseEntity<Item>(HttpStatus.CREATED);
@@ -197,28 +219,25 @@ public class TodoItemController extends BaseController {
      * @throws Exception Thrown if a problem occurs completing the request.
      */
     @PostMapping("/todo/items/{itemId}/comments")
-    public ResponseEntity<Collection<Item>> addComment(@PathVariable Integer itemId, @RequestBody Comment comment) 
+    public ResponseEntity<Collection<ItemDto>> addComment(@PathVariable Integer itemId, @RequestBody Comment comment) 
     		throws Exception{
     	logger.info("# addComment - start");
 
     	Item todoItem = itemService.findOne(itemId);
         if (todoItem == null) {
         	logger.info("# addComment - item not found");
-            return new ResponseEntity<Collection<Item>>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<Collection<ItemDto>>(HttpStatus.NOT_FOUND);
         }
+        comment.setCommentDate(new Date(System.currentTimeMillis()));
+        comment.setTodoItem(todoItem);
+        commentService.create(comment);
         
-        // add comment
-        Comment newComment = new Comment(null, "Test Comment", new Date(System.currentTimeMillis()));
-        //comment.setCommentDate(new Date(System.currentTimeMillis())); // set current date/time
-        commentService.add(todoItem,comment);
-        
-        // fetch comment list
-        Item updatedItem = itemService.findOne(itemId);
-        List<Item> updatedItemList = new ArrayList<Item>();
-        updatedItemList.add(updatedItem);
+        Item savedItem = itemService.findWithComments(itemId);
+        List<ItemDto> itemList = new ArrayList<ItemDto>();
+        itemList.add(ItemDto.create(savedItem));
 
         logger.info("# addComment - end");
-        return new ResponseEntity<Collection<Item>>(updatedItemList,HttpStatus.OK);
+        return new ResponseEntity<Collection<ItemDto>>(itemList,HttpStatus.OK);
     }
 
 }

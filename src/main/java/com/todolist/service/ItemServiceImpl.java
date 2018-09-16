@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.todolist.model.Item;
+import com.todolist.repository.CommentRepository;
 import com.todolist.repository.ItemRepository;
 
 @Service
@@ -21,6 +22,9 @@ public class ItemServiceImpl implements ItemService {
 	 
 	@Autowired
 	private ItemRepository itemRepository;
+	
+	@Autowired
+	private CommentRepository commentRepository;
 	
 	@Override
 	public Collection<Item> findAll() {
@@ -32,6 +36,13 @@ public class ItemServiceImpl implements ItemService {
 	@Override
 	public Item findOne(Integer itemId) {
 		Item item = itemRepository.findByItemId(itemId);
+		return item;
+	}
+	
+	@Override
+	public Item findWithComments(Integer itemId) {
+		Item item = itemRepository.findWithCommentsByItemId(itemId);
+		item.setComments(commentRepository.findByItemId(itemId));
 		return item;
 	}
 
@@ -50,30 +61,8 @@ public class ItemServiceImpl implements ItemService {
                     "Cannot create new Item with supplied item id.  The itemId attribute must be null to create an entity.");
         }
 
-        Item savedItem = itemRepository.save(item);
+        Item savedItem = itemRepository.saveAndFlush(item);
 		return savedItem;
-	}
-
-	@Transactional
-	@Override
-	public Item update(Item item) {
-		
-		/* Ensure the entity object to be updated exists in the repository to
-           prevent the default behavior of save() which will persist a new
-           entity if the entity matching the id does not exist
-        */
-        Item itemToUpdate = findOne(item.getItemId());
-        if (itemToUpdate == null) {
-            logger.error("Attempted to update an Item, but the entity does not exist.");
-            
-            throw new NoResultException("Requested Item not found.");
-        }
-
-        itemToUpdate.setTodo(item.getTodo());
-        itemToUpdate.setDone(item.getDone());
-                
-        Item updatedItem = itemRepository.save(itemToUpdate);
-		return updatedItem;
 	}
 	
 	@Transactional
@@ -93,7 +82,7 @@ public class ItemServiceImpl implements ItemService {
 
         itemToUpdate.setDone(true); // marking as complete
                 
-        Item updatedItem = itemRepository.save(itemToUpdate);
+        Item updatedItem = itemRepository.saveAndFlush(itemToUpdate);
 		return updatedItem;
 	}
 

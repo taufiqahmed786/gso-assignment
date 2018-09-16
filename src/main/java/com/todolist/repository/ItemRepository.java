@@ -18,4 +18,7 @@ public interface ItemRepository extends JpaRepository<Item, Integer>{
 	
 	@Query("select i from Item i order by i.done asc, i.createdOn desc ")
 	List<Item> findAllItemsOrderByMostRecentAndPending();
+	
+	@Query("select i from Item i where i.itemId = ?1 order by i.createdOn desc ")
+	Item findWithCommentsByItemId(Integer itemId);
 }

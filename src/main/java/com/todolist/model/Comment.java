@@ -5,8 +5,11 @@ import java.sql.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 
@@ -32,6 +35,10 @@ public class Comment implements Serializable {
     
     @Column(name = "comment_date")
 	private Date commentDate;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="fk_item")
+    private Item todoItem;
 	
 	public Comment(){} // default constructor
 	
@@ -61,6 +68,12 @@ public class Comment implements Serializable {
 	public void setCommentDate(Date commentDate) {
 		this.commentDate = commentDate;
 	}	
+	public Item getTodoItem() {
+		return todoItem;
+	}
+	public void setTodoItem(Item todoItem) {
+		this.todoItem = todoItem;
+	}
 	
 	@Override
 	public String toString() {

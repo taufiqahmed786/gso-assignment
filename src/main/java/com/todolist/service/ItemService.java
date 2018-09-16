@@ -11,10 +11,10 @@ public interface ItemService {
     Collection<Item> findAll();
 
     Item findOne(Integer itemId);
+    
+    Item findWithComments(Integer itemId);
 
     Item create(Item item) throws EntityExistsException;
-
-    Item update(Item item);
     
     Item markComplete(Integer itemId);
     
